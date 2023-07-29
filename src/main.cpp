@@ -1,0 +1,46 @@
+/*
+ * WiFi Esempio 03: connessione ad un Access Point e gestione riconnessione automatica
+ *
+ * L'esempio illustra l'insieme delle operazioni necessarie per collegare la ESP32 ad un Access Point WiFi
+ * e gestire le situazioni di perdita di connessione e riconnessione automatica.
+ *
+ * Per il controllo dello stato della connessione vengono adoperati gli eventi dell'oggetto Wifi
+ *
+ */
+
+#include <Arduino.h>
+#include <WiFi.h>
+#include <WIFI/wifi_functions.h>
+
+#define pinWiFiConnected 23
+
+void setup()
+{
+  Serial.begin(115200);
+  Serial.println("WiFi Esempio 03: connessione ad un Access Point e gestione riconnessione automatica");
+
+  // impiega il metodo macAddress() dell'oggetto WiFi
+  Serial.println();
+  Serial.print("MAC Address: ");
+  Serial.println(WiFi.macAddress());
+
+  // avvia la connessione ad un access point e registra gli handler degli eventi WiFi
+  initWiFi_STA();
+}
+
+void loop()
+{
+  // comanda un led per indicare la connessione all'access point WiFi
+  pinMode(pinWiFiConnected, OUTPUT);
+
+  if (WiFi.isConnected())
+  {
+    digitalWrite(pinWiFiConnected, HIGH);
+  }
+  else
+  {
+    digitalWrite(pinWiFiConnected, LOW);
+  }
+
+  vTaskDelay(pdMS_TO_TICKS(100));
+}
