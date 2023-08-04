@@ -13,7 +13,6 @@
 #include <WiFi.h>
 #include <WIFI/wifi_functions.h>
 
-// #define pinWiFiConnected 23
 
 void setup()
 {
