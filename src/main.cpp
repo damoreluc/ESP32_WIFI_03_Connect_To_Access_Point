@@ -9,10 +9,11 @@
  */
 
 #include <Arduino.h>
+#include <HWCONFIG/hwConfig.h>
 #include <WiFi.h>
 #include <WIFI/wifi_functions.h>
 
-#define pinWiFiConnected 23
+// #define pinWiFiConnected 23
 
 void setup()
 {
@@ -30,17 +31,7 @@ void setup()
 
 void loop()
 {
-  // comanda un led per indicare la connessione all'access point WiFi
-  pinMode(pinWiFiConnected, OUTPUT);
-
-  if (WiFi.isConnected())
-  {
-    digitalWrite(pinWiFiConnected, HIGH);
-  }
-  else
-  {
-    digitalWrite(pinWiFiConnected, LOW);
-  }
+  // codice da eseguire ciclicamente...
 
   vTaskDelay(pdMS_TO_TICKS(100));
 }

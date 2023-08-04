@@ -1,6 +1,10 @@
 #include <WIFI/wifi_functions.h>
+#include <HWCONFIG/hwConfig.h>
 
 void initWiFi_STA() {
+    // comanda un led per indicare la connessione all'access point WiFi
+  pinMode(pinWiFiConnected, OUTPUT);
+
   WiFi.mode(WIFI_STA);
 
   // gestione degli eventi WiFi
