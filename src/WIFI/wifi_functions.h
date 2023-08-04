@@ -22,4 +22,10 @@ void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info);
 // Gestione della disconnessione e tentativo di riconnessione
 void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info);
 
+// Operazioni dei layer superiori da compiere quando è pronto il layer IP
+void WiFiNetworkReady();
+
+// Operazioni da compiere sui layers superiori se il layer IP è caduto
+void WiFiNetworkFail();
+
 #endif

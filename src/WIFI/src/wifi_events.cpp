@@ -69,9 +69,13 @@ void WiFiEvent(WiFiEvent_t event)
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
         Serial.print(F("Obtained IP address: "));
         Serial.println(WiFi.localIP());
+        // operazioni da compiere sui layers superiori dopo che il layer IP è pronto
+        WiFiNetworkReady();
         break;
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
         Serial.println(F("Lost IP address and IP address is reset to 0"));
+        // operazioni da compiere sui layers superiori se il layer IP è caduto
+        WiFiNetworkFail();
         break;
     case ARDUINO_EVENT_WPS_ER_SUCCESS:
         Serial.println(F("WiFi Protected Setup (WPS): succeeded in enrollee mode"));
