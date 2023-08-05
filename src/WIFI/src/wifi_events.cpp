@@ -33,6 +33,7 @@
 */
 
 #include <WIFI/wifi_functions.h>
+#include <HWCONFIG/hwConfig.h>
 
 void WiFiEvent(WiFiEvent_t event)
 {
@@ -53,6 +54,7 @@ void WiFiEvent(WiFiEvent_t event)
         Serial.println(F("WiFi clients stopped"));
         break;
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+        digitalWrite(pinWiFiConnected, HIGH);
         Serial.print(F("Connected to access point "));
         Serial.print(WiFi.SSID());
         Serial.print(F("  (RSSI: "));
@@ -60,8 +62,8 @@ void WiFiEvent(WiFiEvent_t event)
         Serial.println(")");
         break;
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+        digitalWrite(pinWiFiConnected, LOW);
         Serial.println(F("Disconnected from WiFi access point"));
-
         break;
     case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
         Serial.println(F("Authentication mode of access point has changed"));

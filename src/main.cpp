@@ -24,7 +24,8 @@ void setup()
   Serial.print("MAC Address: ");
   Serial.println(WiFi.macAddress());
 
-  // avvia la connessione ad un access point e registra gli handler degli eventi WiFi
+  // registra gli handler degli eventi WiFi e avvia la connessione ad un access point 
+  // in modalità STATION 
   initWiFi_STA();
 }
 

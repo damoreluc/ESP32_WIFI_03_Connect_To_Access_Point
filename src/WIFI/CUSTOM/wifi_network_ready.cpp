@@ -4,6 +4,6 @@
 // Operazioni dei layer superiori da compiere quando è pronto il layer IP
 void WiFiNetworkReady()
 {
-    digitalWrite(pinWiFiConnected, HIGH);
+
 
 }

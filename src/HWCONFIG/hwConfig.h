@@ -1,6 +1,8 @@
 #ifndef __HWCONFIG_H
 #define __HWCONFIG_H
 
+#include <Arduino.h>
+
 // input pin
 
 
@@ -8,6 +10,6 @@
 
 
 // indicatore stato connessione WiFi
-#define pinWiFiConnected 23
+#define pinWiFiConnected GPIO_NUM_23
 
 #endif
