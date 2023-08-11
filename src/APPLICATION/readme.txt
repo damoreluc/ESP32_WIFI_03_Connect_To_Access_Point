@@ -1,0 +1,1 @@
+Adoperare quesa cartella per i ifle specifici dell'applicazione sviluppata.
