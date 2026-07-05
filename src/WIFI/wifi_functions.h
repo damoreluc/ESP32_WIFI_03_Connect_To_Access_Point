@@ -11,16 +11,7 @@
 void initWiFi_STA();
 
 // Gestione degli eventi del WiFi
-void WiFiEvent(WiFiEvent_t event);
-
-// Stampa l'indirizzo IP ottenuto 
-void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info);
-
-// Stampa la conferma di connessione all'access point
-void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info);
-
-// Gestione della disconnessione e tentativo di riconnessione
-void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info);
+void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info);
 
 // Operazioni dei layer superiori da compiere quando è pronto il layer IP
 void WiFiNetworkReady();

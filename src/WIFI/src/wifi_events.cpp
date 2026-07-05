@@ -35,9 +35,9 @@
 #include <WIFI/wifi_functions.h>
 #include <HWCONFIG/hwConfig.h>
 
-void WiFiEvent(WiFiEvent_t event)
+void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info)
 {
-    Serial.printf("[WiFi-event] event: %d\n", event);
+    Serial.printf("[WiFi-event] event: %d on core %d\n", event, xPortGetCoreID());
 
     switch (event)
     {
@@ -63,7 +63,10 @@ void WiFiEvent(WiFiEvent_t event)
         break;
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
         digitalWrite(pinWiFiConnected, LOW);
-        Serial.println(F("Disconnected from WiFi access point"));
+        Serial.print(F("Disconnected from WiFi access point. Reason: "));
+        Serial.println(info.wifi_sta_disconnected.reason);
+        Serial.println(F("Trying to Reconnect"));
+        WiFi.reconnect();
         break;
     case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
         Serial.println(F("Authentication mode of access point has changed"));

@@ -3,6 +3,14 @@
 
 void initWiFi_STA()
 {
+  Serial.printf("[DIAG] initWiFi_STA() running on core %d\n", xPortGetCoreID());
+#ifdef ARDUINO_RUNNING_CORE
+  Serial.printf("[DIAG] ARDUINO_RUNNING_CORE (user loop/task) = %d\n", ARDUINO_RUNNING_CORE);
+#endif
+#ifdef ARDUINO_EVENT_RUNNING_CORE
+  Serial.printf("[DIAG] ARDUINO_EVENT_RUNNING_CORE (WiFi events) = %d\n", ARDUINO_EVENT_RUNNING_CORE);
+#endif
+
   // Timeout: max 20 secondi per connessione
   unsigned long startTime = millis();
   const unsigned long timeout = 20000; // 20 sec
@@ -13,11 +21,12 @@ void initWiFi_STA()
 
   WiFi.mode(WIFI_STA);
 
-  // gestione degli eventi WiFi
-  WiFi.onEvent(WiFiEvent, WiFiEvent_t::ARDUINO_EVENT_MAX);
-  // WiFi.onEvent(WiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
-  // WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
-  WiFi.onEvent(WiFiStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+  // registra solo gli eventi necessari (evita ARDUINO_EVENT_MAX)
+  WiFi.onEvent(WiFiEvent, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_START);
+  WiFi.onEvent(WiFiEvent, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
+  WiFi.onEvent(WiFiEvent, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+  WiFi.onEvent(WiFiEvent, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
+  WiFi.onEvent(WiFiEvent, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_LOST_IP);
 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.println(F("Connecting to WiFi "));
@@ -26,7 +35,7 @@ void initWiFi_STA()
   while (WiFi.status() != WL_CONNECTED && millis() - startTime < timeout)
   {
     Serial.print('.');
-    delay(1000);
+    vTaskDelay(pdMS_TO_TICKS(1000));
     attempts++;
   }
 
