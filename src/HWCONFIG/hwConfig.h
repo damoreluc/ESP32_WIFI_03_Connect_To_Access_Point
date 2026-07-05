@@ -12,4 +12,8 @@
 // indicatore stato connessione WiFi
 #define pinWiFiConnected GPIO_NUM_23
 
+#if (pinWiFiConnected < 0 || pinWiFiConnected > 39)
+  #error "[ERROR] Invalid GPIO pin for WiFi LED"
+#endif
+
 #endif

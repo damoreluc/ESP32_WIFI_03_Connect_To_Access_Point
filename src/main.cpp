@@ -22,8 +22,9 @@
 void setup()
 {
   Serial.begin(115200);
+  delay(100);
   Serial.println("\n\nWiFi Esempio 03: connessione ad un Access Point e gestione riconnessione automatica");
-  Serial.println("Con integrazione WiFiManager per gestione parametri WiFi");
+  Serial.println("Con integrazione WiFiManager per gestione parametri WiFi (MODALITA' BLOCCANTE)");
 
   // reset settings - for testing
   //resetWiFiConfig();
@@ -33,37 +34,24 @@ void setup()
   Serial.print("MAC Address: ");
   Serial.println(WiFi.macAddress());
 
-  // Inizializza WiFiManager con parametri personalizzati
-  // - Nome del dispositivo per l'AP temporaneo: "ESP32-WiFi"
-  // - Timeout di configurazione: 180 secondi
-  initWiFiManager("ESP32-WiFi", 180);
-
-  // Avvia il task FreeRTOS di WiFiManager sul core 0
-  if (startWiFiManagerTask())
-  {
-    Serial.println("[Main] WiFiManager task avviato con successo");
+  // Sposta lo stack rete nel task dedicato pinato al core 0
+  Serial.println("\n[Setup] Avvio task WiFiManager su core 0...\n");
+  if (!startWiFiManagerTask()) {
+    Serial.println("[Setup] Errore avvio task WiFiManager");
+    ESP.restart();
   }
-  else
-  {
-    Serial.println("[Main] Errore nel lancio del task");
-  } 
+
+  if (!waitWiFiManagerTaskInit(240000)) {
+    Serial.println("[Setup] Timeout inizializzazione rete su core 0");
+    ESP.restart();
+  }
+
+  Serial.println("\n[Setup] Stack rete inizializzato su core 0\n");
 }
 
 void loop()
 {
-  // Monitoraggio dello stack del task WiFiManager
-  if (isWiFiManagerTaskRunning())
-  {
-    UBaseType_t stackFree = getWiFiManagerTaskStackFree();
-    if (stackFree < 2048)  // Meno di 2 KB liberi
-    {
-      Serial.print("[WARNING] Stack WiFiManager basso: ");
-      Serial.print(stackFree);
-      Serial.println(" bytes");
-    }
-  }
-  
-  // Codice da eseguire ciclicamente...
-
+  // Nessuna chiamata a API WiFi nel loop (core 1): stato pilotato dagli eventi
+  digitalWrite(pinWiFiConnected, wifiConnectedFlag);
   vTaskDelay(pdMS_TO_TICKS(100));
 }

@@ -24,6 +24,14 @@
 bool startWiFiManagerTask();
 
 /**
+ * @brief Attende il completamento dell'inizializzazione WiFiManager sul core 0
+ * 
+ * @param timeoutMs Timeout in millisecondi (0 = attesa infinita)
+ * @return true se inizializzazione completata e rete connessa
+ */
+bool waitWiFiManagerTaskInit(uint32_t timeoutMs = 0);
+
+/**
  * @brief Ferma il task FreeRTOS di WiFiManager
  */
 void stopWiFiManagerTask();
@@ -34,6 +42,11 @@ void stopWiFiManagerTask();
  * @return true se il task è in esecuzione
  */
 bool isWiFiManagerTaskRunning();
+
+/**
+ * @brief Restituisce true se lo stack di rete risulta pronto
+ */
+bool isNetworkStackReady();
 
 /**
  * @brief Ottiene lo stack free del task WiFiManager

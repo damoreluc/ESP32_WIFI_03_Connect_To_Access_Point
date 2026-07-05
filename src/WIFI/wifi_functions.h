@@ -2,13 +2,17 @@
 #define _WIFI_FUNCTIONS_H
 
 #include <Arduino.h>
-#include <WIFI/credentials.h>
 #include <WiFi.h>
 
+// Flag globale per sincronizzare lo stato del LED con gli eventi WiFi
+extern volatile bool wifiConnectedFlag;
+
+// Flag globale per evitare duplicazioni della notifica "network ready"
+extern bool g_wifiNetworkReadyNotified;
+
 // configura il modulo WiFi come STATION
-// e si connette ad un Access Point con le credenziali 
-// definite nel file credentials.h
-void initWiFi_STA();
+// e prova a connettersi usando le credenziali gia' salvate nel sistema WiFi
+bool initWiFi_STA();
 
 // Gestione degli eventi del WiFi
 void WiFiEvent(WiFiEvent_t event);

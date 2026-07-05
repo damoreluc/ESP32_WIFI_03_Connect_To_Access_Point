@@ -24,6 +24,8 @@
 // Handle del task
 static TaskHandle_t wifiManagerTaskHandle = NULL;
 static bool taskRunning = false;
+static volatile bool wifiInitCompleted = false;
+static volatile bool networkStackReady = false;
 
 // Dimensione stack in bytes (20 KB consigliato per wm.process())
 #define WIFI_MANAGER_STACK_SIZE 20480  // 20 KB
@@ -36,19 +38,17 @@ static bool taskRunning = false;
  */
 void wifiManagerTaskFunction(void *pvParameters)
 {
-  Serial.println(F("[WiFiTask] Task WiFiManager avviato sul core 0"));
-  
-  // Loop infinito del task
-  while (taskRunning)
-  {
-    // Elabora le richieste WiFiManager
-    handleWiFiManagerLoop();
-    
-    // Cede il controllo ad altri task (1 ms)
-    vTaskDelay(pdMS_TO_TICKS(1));
-  }
-  
-  // Il task termina
+  Serial.printf("[WiFiTask] Task WiFiManager avviato sul core %d\n", xPortGetCoreID());
+
+  // Inizializzazione completa dello stack WiFi sul core 0
+  initWiFiManager("ESP32-WiFi", 180);
+
+  wifiInitCompleted = true;
+  networkStackReady = (WiFi.status() == WL_CONNECTED);
+  taskRunning = false;
+
+  Serial.printf("[WiFiTask] Inizializzazione completata sul core %d\n", xPortGetCoreID());
+  wifiManagerTaskHandle = NULL;
   vTaskDelete(NULL);
 }
 
@@ -63,6 +63,8 @@ bool startWiFiManagerTask()
     return false;
   }
   
+  wifiInitCompleted = false;
+  networkStackReady = false;
   taskRunning = true;
   
   // Crea il task sul core 0
@@ -134,6 +136,33 @@ void stopWiFiManagerTask()
 bool isWiFiManagerTaskRunning()
 {
   return taskRunning && (wifiManagerTaskHandle != NULL);
+}
+
+/**
+ * @brief Attende il completamento dell'inizializzazione WiFiManager
+ */
+bool waitWiFiManagerTaskInit(uint32_t timeoutMs)
+{
+  unsigned long start = millis();
+
+  while (!wifiInitCompleted)
+  {
+    if (timeoutMs > 0 && (millis() - start) >= timeoutMs)
+    {
+      return false;
+    }
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+
+  return networkStackReady;
+}
+
+/**
+ * @brief Restituisce lo stato della rete dopo init WiFiManager
+ */
+bool isNetworkStackReady()
+{
+  return networkStackReady;
 }
 
 /**

@@ -35,103 +35,38 @@
 #include <WIFI/wifi_functions.h>
 #include <HWCONFIG/hwConfig.h>
 
+volatile bool wifiConnectedFlag = false;
+
 void WiFiEvent(WiFiEvent_t event)
 {
-    Serial.printf("[WiFi-event] event: %d\n", event);
-
     switch (event)
     {
-    case ARDUINO_EVENT_WIFI_READY:
-        Serial.println(F("WiFi interface ready"));
-        break;
-    case ARDUINO_EVENT_WIFI_SCAN_DONE:
-        Serial.println(F("Completed scan for access points"));
-        break;
-    case ARDUINO_EVENT_WIFI_STA_START:
-        Serial.println(F("WiFi client started"));
-        break;
-    case ARDUINO_EVENT_WIFI_STA_STOP:
-        Serial.println(F("WiFi clients stopped"));
-        break;
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+        wifiConnectedFlag = true;
         digitalWrite(pinWiFiConnected, HIGH);
-        Serial.print(F("Connected to access point "));
+        Serial.print(F("[WiFi-event] Connected to access point "));
         Serial.print(WiFi.SSID());
-        Serial.print(F("  (RSSI: "));
+        Serial.print(F(" (RSSI: "));
         Serial.print(WiFi.RSSI());
-        Serial.println(")");
+        Serial.println(F(" dBm)"));
         break;
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+        wifiConnectedFlag = false;
         digitalWrite(pinWiFiConnected, LOW);
-        Serial.println(F("Disconnected from WiFi access point"));
-        break;
-    case ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
-        Serial.println(F("Authentication mode of access point has changed"));
+        Serial.println(F("[WiFi-event] Disconnected from WiFi access point"));
         break;
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-        Serial.print(F("Obtained IP address: "));
+        wifiConnectedFlag = true;
+        digitalWrite(pinWiFiConnected, HIGH);
+        Serial.print(F("[WiFi-event] Obtained IP address: "));
         Serial.println(WiFi.localIP());
-        // operazioni da compiere sui layers superiori dopo che il layer IP è pronto
         WiFiNetworkReady();
         break;
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
-        Serial.println(F("Lost IP address and IP address is reset to 0"));
-        // operazioni da compiere sui layers superiori se il layer IP è caduto
+        wifiConnectedFlag = false;
+        digitalWrite(pinWiFiConnected, LOW);
+        Serial.println(F("[WiFi-event] Lost IP address"));
         WiFiNetworkFail();
-        break;
-    case ARDUINO_EVENT_WPS_ER_SUCCESS:
-        Serial.println(F("WiFi Protected Setup (WPS): succeeded in enrollee mode"));
-        break;
-    case ARDUINO_EVENT_WPS_ER_FAILED:
-        Serial.println(F("WiFi Protected Setup (WPS): failed in enrollee mode"));
-        break;
-    case ARDUINO_EVENT_WPS_ER_TIMEOUT:
-        Serial.println(F("WiFi Protected Setup (WPS): timeout in enrollee mode"));
-        break;
-    case ARDUINO_EVENT_WPS_ER_PIN:
-        Serial.println(F("WiFi Protected Setup (WPS): pin code in enrollee mode"));
-        break;
-    case ARDUINO_EVENT_WIFI_AP_START:
-        Serial.println(F("WiFi access point started"));
-        break;
-    case ARDUINO_EVENT_WIFI_AP_STOP:
-        Serial.println(F("WiFi access point  stopped"));
-        break;
-    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
-        Serial.println(F("Client connected"));
-        break;
-    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
-        Serial.println(F("Client disconnected"));
-        break;
-    case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:
-        Serial.println(F("Assigned IP address to client"));
-        break;
-    case ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
-        Serial.println(F("Received probe request"));
-        break;
-    case ARDUINO_EVENT_WIFI_AP_GOT_IP6:
-        Serial.println(F("AP IPv6 is preferred"));
-        break;
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP6:
-        Serial.println(F("STA IPv6 is preferred"));
-        break;
-    case ARDUINO_EVENT_ETH_GOT_IP6:
-        Serial.println(F("Ethernet IPv6 is preferred"));
-        break;
-    case ARDUINO_EVENT_ETH_START:
-        Serial.println(F("Ethernet started"));
-        break;
-    case ARDUINO_EVENT_ETH_STOP:
-        Serial.println(F("Ethernet stopped"));
-        break;
-    case ARDUINO_EVENT_ETH_CONNECTED:
-        Serial.println(F("Ethernet connected"));
-        break;
-    case ARDUINO_EVENT_ETH_DISCONNECTED:
-        Serial.println(F("Ethernet disconnected"));
-        break;
-    case ARDUINO_EVENT_ETH_GOT_IP:
-        Serial.println(F("Obtained IP address"));
         break;
     default:
         break;

@@ -1,44 +1,44 @@
 #include <WIFI/wifi_functions.h>
 #include <HWCONFIG/hwConfig.h>
 
-void initWiFi_STA()
+bool initWiFi_STA()
 {
-  // Timeout: max 20 secondi per connessione
-  unsigned long startTime = millis();
-  const unsigned long timeout = 20000; // 20 sec
-  unsigned int attempts = 0;
-
-  // comanda un led per indicare la connessione all'access point WiFi
   pinMode(pinWiFiConnected, OUTPUT);
+  digitalWrite(pinWiFiConnected, LOW);
+  wifiConnectedFlag = false;
 
   WiFi.mode(WIFI_STA);
+  WiFi.disconnect(true, true);
 
-  // gestione degli eventi WiFi
-  WiFi.onEvent(WiFiEvent, WiFiEvent_t::ARDUINO_EVENT_MAX);
-  // WiFi.onEvent(WiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
-  // WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
-  WiFi.onEvent(WiFiStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+  WiFi.onEvent(WiFiEvent, ARDUINO_EVENT_WIFI_STA_CONNECTED);
+  WiFi.onEvent(WiFiEvent, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+  WiFi.onEvent(WiFiGotIP, ARDUINO_EVENT_WIFI_STA_GOT_IP);
+  WiFi.onEvent(WiFiEvent, ARDUINO_EVENT_WIFI_STA_LOST_IP);
+  WiFi.onEvent(WiFiStationDisconnected, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
 
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  Serial.println(F("Connecting to WiFi "));
+  WiFi.begin();
+  Serial.println(F("Connecting to saved WiFi credentials"));
 
-  // tenta la connessione, con timeout
-  while (WiFi.status() != WL_CONNECTED && millis() - startTime < timeout)
-  {
+  unsigned long startTime = millis();
+  const unsigned long timeout = 20000;
+  unsigned int attempts = 0;
+
+  while (WiFi.status() != WL_CONNECTED && millis() - startTime < timeout) {
     Serial.print('.');
-    delay(1000);
+    vTaskDelay(pdMS_TO_TICKS(500));
     attempts++;
   }
 
-  // connessione stabilita?
-  if (WiFi.status() != WL_CONNECTED)
-  {
-    Serial.println("\n[ERROR] WiFi connection timeout!");
-    delay(3000);
-    ESP.restart();
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println(F("\n[ERROR] WiFi connection timeout"));
+    digitalWrite(pinWiFiConnected, LOW);
+    return false;
   }
-  else
-  {
-    Serial.printf(" \n connected in %d attemps\n", attempts);
-  }
+
+  Serial.printf("\n[OK] WiFi connected in %u attempts\n", attempts);
+  Serial.print(F("[OK] IP: "));
+  Serial.println(WiFi.localIP());
+  wifiConnectedFlag = true;
+  digitalWrite(pinWiFiConnected, HIGH);
+  return true;
 }

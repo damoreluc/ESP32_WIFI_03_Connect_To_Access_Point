@@ -2,8 +2,8 @@
 #include <WIFI/wifi_functions.h>
 #include <HWCONFIG/hwConfig.h>
 
-// Istanza globale di WiFiManager (ESP_WiFiManager per ESP32)
-WiFiManager wm;
+// Istanza dinamica di WiFiManager: viva solo durante il provisioning
+static WiFiManager* wm = nullptr;
 
 // Variabili di stato
 static bool wm_connected = false;
@@ -92,7 +92,6 @@ void WiFiManagerEvent(WiFiEvent_t event)
     Serial.println(WiFi.localIP());
     wm_connected = true;
     connectedCallback();
-    WiFiNetworkReady();
     break;
 
   case ARDUINO_EVENT_WIFI_STA_LOST_IP:
@@ -109,7 +108,19 @@ void WiFiManagerEvent(WiFiEvent_t event)
 void initWiFiManager(const char* deviceName, uint32_t timeoutSeconds)
 {
   Serial.println(F("\n[WiFiManager] Inizializzazione WiFiManager per ESP32..."));
-  Serial.println(F("[WiFiManager] Con supporto captive portal e DNS server"));
+  Serial.println(F("[WiFiManager] Modalità BLOCCANTE - La setup() aspetta la configurazione"));
+
+  const uint32_t heapBeforeWiFiManager = ESP.getFreeHeap();
+
+  // Crea l'istanza solo quando serve, per poterla distruggere a fine provisioning
+  if (wm == nullptr) {
+    wm = new WiFiManager();
+    if (wm == nullptr) {
+      Serial.println(F("[WiFiManager] Errore allocazione WiFiManager"));
+      ESP.restart();
+      return;
+    }
+  }
 
   // Imposta il GPIO per il LED di connessione
   pinMode(pinWiFiConnected, OUTPUT);
@@ -119,23 +130,23 @@ void initWiFiManager(const char* deviceName, uint32_t timeoutSeconds)
   wm_timeout = timeoutSeconds * 1000;
 
   // Configura WiFiManager per ESP32
-  wm.setConfigPortalBlocking(false);     // Non blocca il resto del codice
-  wm.setConfigPortalTimeout(timeoutSeconds);  // Timeout per il portale di configurazione
-  wm.setConnectTimeout(20);              // Timeout per connessione: 20 sec
-  wm.setAPCallback(configModeCallback);
-  wm.setSaveConfigCallback(configSavedCallback);
-  wm.setSaveParamsCallback(saveParamsCallback);
+  wm->setConfigPortalBlocking(true);      // BLOCCANTE: setup() attende il completamento
+  wm->setConfigPortalTimeout(timeoutSeconds);  // Timeout per il portale di configurazione
+  wm->setConnectTimeout(20);              // Timeout per connessione: 20 sec
+  wm->setAPCallback(configModeCallback);
+  wm->setSaveConfigCallback(configSavedCallback);
+  wm->setSaveParamsCallback(saveParamsCallback);
   
   // Abilita il debug sulla seriale
-  wm.setDebugOutput(false);
+  wm->setDebugOutput(false);
   
   // Abilita il salvamento automatico di SSID e password
-  wm.setBreakAfterConfig(true);
+  wm->setBreakAfterConfig(true);
 
   // Aggiungi i parametri MQTT personalizzati al portale
-  wm.addParameter(&custom_mqtt_broker);
-  wm.addParameter(&custom_mqtt_password);
-  wm.addParameter(&custom_mqtt_clientname);
+  wm->addParameter(&custom_mqtt_broker);
+  wm->addParameter(&custom_mqtt_password);
+  wm->addParameter(&custom_mqtt_clientname);
 
   // Registra gli handler degli eventi WiFi
   WiFi.onEvent(WiFiManagerEvent, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
@@ -145,7 +156,8 @@ void initWiFiManager(const char* deviceName, uint32_t timeoutSeconds)
 
   // Prova a connettersi con le credenziali salvate
   // Se non trova credenziali valide, avvia il portale di configurazione
-  bool res = wm.autoConnect(deviceName, "12345678");  // SSID e password dell'AP temporaneo
+  // BLOCCANTE: autoConnect() ritorna solo dopo configurazione o timeout
+  bool res = wm->autoConnect(deviceName, "12345678");  // SSID e password dell'AP temporaneo
 
   if (res)
   {
@@ -169,17 +181,26 @@ void initWiFiManager(const char* deviceName, uint32_t timeoutSeconds)
     
     digitalWrite(pinWiFiConnected, HIGH);
     WiFiNetworkReady();
+
+    // Rilascia risorse del captive portal (server DNS/HTTP e stato interno WiFiManager)
+    wm->stopWebPortal();
+    wm->stopConfigPortal();
+    delete wm;
+    wm = nullptr;
+
+    const uint32_t heapAfterWiFiManager = ESP.getFreeHeap();
+    Serial.printf("[WiFiManager] Heap prima/dopo rilascio: %lu -> %lu (delta %+ld bytes)\n",
+                  heapBeforeWiFiManager,
+                  heapAfterWiFiManager,
+                  (long)heapAfterWiFiManager - (long)heapBeforeWiFiManager);
   }
   else
   {
-    Serial.println(F("[WiFiManager] Timeout - Connessione non stabilita"));
-    Serial.println(F("[WiFiManager] Modalità Access Point attiva"));
-    Serial.println(String(F("[WiFiManager] SSID: ")) + deviceName);
-    Serial.println(F("[WiFiManager] Password: 12345678"));
-    Serial.println(F("[WiFiManager] IP AP: 192.168.4.1"));
-    Serial.println(F("[WiFiManager] Accedi a http://192.168.4.1 per configurare il WiFi"));
-    Serial.println(F("[WiFiManager] Oppure accedi a qualsiasi dominio (es: http://example.com)"));
-    Serial.println(String(F("[WiFiManager] Portale rimane attivo per ")) + timeoutSeconds + F(" secondi"));
+    Serial.println(F("[WiFiManager] Timeout raggiunto - Connessione non stabilita"));
+    Serial.println(F("[WiFiManager] La configurazione è FALLITA"));
+    Serial.println(F("[WiFiManager] Riavvio il dispositivo..."));
+    delay(2000);
+    ESP.restart();
   }
 }
 
@@ -188,7 +209,12 @@ void resetWiFiConfig()
   Serial.println(F("[WiFiManager] Resettaggio configurazione WiFi..."));
   
   // Rimuove le credenziali salvate
-  wm.resetSettings();
+  if (wm != nullptr) {
+    wm->resetSettings();
+  } else {
+    WiFiManager tempWm;
+    tempWm.resetSettings();
+  }
   
   // Disconnette da WiFi
   WiFi.disconnect(true, true);  // turnOffWiFi, turnOffWiFiAP
@@ -200,11 +226,17 @@ void resetWiFiConfig()
 
 /**
  * @brief Funzione da chiamare nel loop() per mantenere attivo WiFiManager
+ * 
+ * NOTA: In modalità bloccante (setup()), questa funzione non è necessaria
+ * perché initWiFiManager() aspetta il completamento della configurazione.
+ * 
+ * Manteniamo la funzione per backward compatibility.
  */
 void handleWiFiManagerLoop()
 {
-  // Elabora le richieste del portale WiFiManager
-  wm.process();
+  // In modalità bloccante, questa funzione non fa nulla
+  // WiFiManager è completato durante setup()
+  // Aggiornato: nessuna elaborazione necessaria
 }
 
 /**
